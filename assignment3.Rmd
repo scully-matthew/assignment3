@@ -1,0 +1,92 @@
+---
+title: "Assignment 3"
+output: 
+  flexdashboard::flex_dashboard:
+    storyboard: true
+---
+
+```{r setup, include=FALSE}
+# Load Packages
+library(flexdashboard)
+library(tidyverse)
+library(plotly)
+library(DT)
+library(leaflet)
+library(viridis)
+
+# Load in data
+RawData <- read.csv("Data/Dataset3_Assessment3.csv")
+```
+
+### Total Attempts Data Table
+
+```{r Attempts_InteractiveTable}
+# Create a tidied table using the DT package
+DataTidied <- RawData %>% 
+  pivot_wider(names_from = Statistic, values_from = Total) %>% 
+  select(Athlete, Team, attempts1, attempts2) %>% 
+  mutate(TotalAttempts = attempts1 + attempts2) # Calculate total attempts
+
+# Call the DT package
+datatable(DataTidied, extensions = "Buttons",
+          options = list(
+            dom = "Bfrtip",
+            buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+          )
+)
+```
+
+### Accuracy Table
+
+``` {r AttemptsVSGoals_InteractiveTable}
+# 
+
+# Filter the dataset to include only "attempts1", "attempts2", "goal1", and "goal2" rows
+filtered_data <- RawData %>%
+  filter(Statistic %in% c("attempts1", "attempts2", "goal1", "goal2"))
+
+# Pivot the data to create columns for attempts and goals
+tidy_data <- filtered_data %>%
+  pivot_wider(names_from = Statistic, values_from = Total) %>%
+  select(Athlete, Team, attempts1, attempts2, goal1, goal2) %>%
+  mutate(TotalAttempts = attempts1 + attempts2,
+         TotalGoals = goal1 + goal2) # Calculate total attempts and total goals
+# Call the DT package
+datatable(filtered_data, extensions = "Buttons",
+          options = list(
+            dom = "Bfrtip",
+            buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+          )
+)
+```
+
+### League Shooting Accuracy
+
+```{r TeamShootingAccuracyPlotly}
+# Create a scatter plot of total goals vs attempts shot for each team
+AccuracyPlot <- ggplot(tidy_data, aes(x = TotalAttempts, y = TotalGoals, color = Team)) +
+  geom_point() +
+  labs(title = "Total Goals vs Attempts Shot by Team",
+       x = "Total Attempts", y = "Total Goals") +
+  theme_minimal() +
+  facet_wrap(~ Team) +
+  scale_colour_viridis_d()
+
+# Make interactive
+ggplotly(AccuracyPlot)
+```
+
+### Athlete Shots Made
+
+```{r AthleteShotsMade}
+# Team by team comparison shooting accuracy plot
+AthleteShotsMade <- ggplot(DataTidied, aes(x = Athlete, y = TotalAttempts, fill = Team)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Total Attempts by Athlete", x = "Athlete", y = "Total Attempts") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_colour_viridis_d()
+
+# Make interactive
+ggplotly(AthleteShotsMade)
+```
